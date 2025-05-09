@@ -1,0 +1,14 @@
+[3+] => x
+
+&togglex
+    |x ^+
+.
+
+&printx
+    |<< x
+.
+
+(:5 ${
+    $togglex
+    $printx
+})
