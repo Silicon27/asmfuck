@@ -162,8 +162,16 @@ void OutputNameGetterVisitor::visit(StmtOutputNode *node) {
     this->_name = node->name;
 }
 
-void IdentifierNameManagementVisitor::visit(ExprIdentifierNode *node) {
+void IdentifierNameAssignVisitor::visit(ExprIdentifierNode *node) {
     node->name = this->_name;
+}
+
+void ArrayNameManagementVisitor::visit(StmtArrayNode *node) {
+    this->_name = node->name;
+}
+
+void IdentifierNameGetterVisitor::visit(ExprIdentifierNode *node) {
+    this->_name = node->name;
 }
 
 
@@ -179,9 +187,22 @@ std::string OutputNameGetterVisitor::getName() const {
     return this->_name;
 }
 
-std::string IdentifierNameManagementVisitor::getName() const {
+std::string IdentifierNameAssignVisitor::getName() const {
     return this->_name;
 }
+
+void IdentifierNameAssignVisitor::setName(std::string name) {
+    this->_name = std::move(name);
+}
+
+std::string ArrayNameManagementVisitor::getName() const {
+    return this->_name;
+}
+
+std::string IdentifierNameGetterVisitor::getName() const {
+    return this->_name;
+}
+
 
 // Implement the AST base class methods
 void AST::addChild(std::shared_ptr<AST> child) {

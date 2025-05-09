@@ -140,18 +140,47 @@ private:
     std::string _name;
 };
 
-class IdentifierNameManagementVisitor final : public Visitor {
+class IdentifierNameAssignVisitor final : public Visitor {
 public:
-    IdentifierNameManagementVisitor() = default;
-    explicit IdentifierNameManagementVisitor(std::string name) : _name(std::move(name)) {}
+    IdentifierNameAssignVisitor() = default;
+    explicit IdentifierNameAssignVisitor(std::string name) : _name(std::move(name)) {}
 
     void visit(ExprIdentifierNode* node) override;
+
+    [[nodiscard]] std::string getName() const;
+
+    void setName(std::string name);
+
+private:
+    std::string _name;
+};
+
+class IdentifierNameGetterVisitor final : public Visitor {
+public:
+    IdentifierNameGetterVisitor() = default;
+    explicit IdentifierNameGetterVisitor(std::string name) : _name(std::move(name)) {}
+
+    void visit(ExprIdentifierNode* node) override;
+
+    [[nodiscad]] std::string getName() const;
+
+private:
+    std::string _name;
+};
+
+class ArrayNameManagementVisitor final : public Visitor {
+public:
+    ArrayNameManagementVisitor() = default;
+    explicit ArrayNameManagementVisitor(std::string name) : _name(std::move(name)) {}
+
+    void visit(StmtArrayNode* node) override;
 
     [[nodiscard]] std::string getName() const;
 
 private:
     std::string _name;
 };
+
 
 /**
  * @class AST

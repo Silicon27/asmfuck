@@ -265,33 +265,26 @@ void Parser::parse_array(int &pos) {
 
     auto arrayNode = std::make_shared<StmtArrayNode>();
 
-    while (pos < tokens.size()) {
-        if (tokens[pos].type != TokenType::IDENTIFIER) {
-            this->error_pack.augment(tcomp::Error{
-                .filepath = this->filename,
-                .type = tcomp::ErrorType::SYNTAX_ERROR,
-                .Xmessage = "Expected identifier",
-                .line = tokens[pos].line,
-                .column = tokens[pos].column
-            });
-        }
+    IdentifierNameAssignVisitor visitor(tokens[pos].value); pos++;
 
-        IdentifierNameManagementVisitor visitor(tokens[pos].value);
+    auto identifierNode = std::make_shared<ExprIdentifierNode>();
 
-        auto identifierNode = std::make_shared<ExprIdentifierNode>();
+    identifierNode->accept(&visitor);
 
-        identifierNode->accept(&visitor);
+    arrayNode->addChild(identifierNode);
 
-        arrayNode->addChild(identifierNode);
-
-        pos++;
-
-
-        if (comma()) {
+    while (tokens[pos].value != ">") {
+        if (tokens[pos].value == ",") {
             this->consume(comma);
+
+            visitor.setName(tokens[pos].value); pos++;
+
+            auto identifierNode2 = std::make_shared<ExprIdentifierNode>();
+            identifierNode2->accept(&visitor);
+
+            arrayNode->addChild(identifierNode2);
+
             continue;
-        } else if (bigger()) {
-            break;
         }
     }
 

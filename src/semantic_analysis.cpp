@@ -18,6 +18,8 @@
 #include "headers/error.h"
 #include "headers/semantic_analysis.h"
 
+
+
 [[nodiscard]] char sem_analysis::binary_to_char(const std::string &binary) {
     return static_cast<char>(std::bitset<8>(binary).to_ulong());
 }
@@ -74,6 +76,27 @@ void sem_analysis::SemanticAnalyser::analyze() {
                 std::cout << constructed_string << std::endl;
 
             }
+        } else if (which_visitor.visitor_type_name == "StmtArrayNode") {
+            ArrayNameManagementVisitor visitor;
+            node->accept(&visitor);
+
+            std::string name = visitor.getName();
+
+            Array arr;
+
+            for (const auto &child : node->getChildren()) {
+                IdentifierNameGetterVisitor var_visitor;
+                child->accept(&var_visitor);
+
+                std::string var_name = var_visitor.getName();
+
+                tc_Bitset var_value = std::get<Variable>(this->symbol_table[var_name]).bitset;
+
+                Variable var = {var_name, var_value};
+                arr.variables.push_back(var);
+            }
+
+            this->symbol_table.emplace(name, SymbolInfo(arr));
         }
     }
 }
