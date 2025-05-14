@@ -28,10 +28,13 @@ using SymbolInfo = std::variant<Variable, Array, Collection>;
 
 namespace sem_analysis {
     [[nodiscard]] char binary_to_char(const std::string &binary);
+    [[nodiscard]] int64_t binary_to_int64_t(const std::string &binary, bool is_signed = false);
 
     class SemanticAnalyser {
     public:
         SemanticAnalyser(std::shared_ptr<ProgramNode> program, std::string filename = "");
+        SemanticAnalyser(std::shared_ptr<ProgramNode> program, std::unordered_map<std::string, SymbolInfo> symbol_table, std::string filename = "");
+
         ~SemanticAnalyser();
 
         void analyze();

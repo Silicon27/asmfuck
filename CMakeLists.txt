@@ -9,3 +9,10 @@ add_executable(turingcomplete main.cpp
         src/error.cpp
         src/semantic_analysis.cpp
 )
+
+target_compile_options(turingcomplete PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+)

@@ -84,6 +84,14 @@ public:
     std::string visitor_type_name;
 };
 
+template <typename T>
+class NameGetterVisitor final {
+    NameGetterVisitor() = default;
+
+    std::string nameGetter(T node);
+};
+
+
 class BitAssignVisitor final : public Visitor {
 public:
     explicit BitAssignVisitor(const tc_Bitset& bits) : _bitsToAssign(bits) {}
@@ -162,7 +170,7 @@ public:
 
     void visit(ExprIdentifierNode* node) override;
 
-    [[nodiscad]] std::string getName() const;
+    [[nodiscard]] std::string getName() const;
 
 private:
     std::string _name;
@@ -181,6 +189,30 @@ private:
     std::string _name;
 };
 
+class LoopIterationCountIdentifierAssignAndGetterVisitor final : public Visitor {
+public:
+    LoopIterationCountIdentifierAssignAndGetterVisitor() = default;
+    explicit LoopIterationCountIdentifierAssignAndGetterVisitor(std::string name) : _name(std::move(name)) {}
+
+    void visit(StmtLoopNode *node) override;
+
+    [[nodiscard]] std::string getName() const;
+
+private:
+    std::string _name;
+};
+
+class LoopIterationCountGetterVisitor final : public Visitor {
+public:
+    LoopIterationCountGetterVisitor() = default;
+
+    void visit (StmtLoopNode *node) override;
+
+    [[nodiscard]] std::string getName() const;
+
+private:
+    std::string _name;
+};
 
 /**
  * @class AST
@@ -551,6 +583,8 @@ public:
     void removeAllChildren() override;
 
     void addParent(std::shared_ptr<AST> parent) override;
+
+    std::string iteration_count_identifier;
 };
 
 /**

@@ -25,118 +25,175 @@ std::string tc_Bitset::get_bits() const {
 
 
 // Visitor static method implementations
-void Visitor::visit(ProgramNode* node) {}
+void Visitor::visit(ProgramNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprNumberNode* node) {}
+void Visitor::visit(ExprNumberNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprIdentifierNode* node) {}
+void Visitor::visit(ExprIdentifierNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprAssignmentNode* node) {}
+void Visitor::visit(ExprAssignmentNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprAddNode* node) {}
+void Visitor::visit(ExprAddNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprSubNode* node) {}
+void Visitor::visit(ExprSubNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprMultNode* node) {}
+void Visitor::visit(ExprMultNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprDivNode* node) {}
+void Visitor::visit(ExprDivNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprExpoNode* node) {}
+void Visitor::visit(ExprExpoNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprVariableNode* node) {}
+void Visitor::visit(ExprVariableNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprBinaryOp* node) {}
+void Visitor::visit(ExprBinaryOp* node) {
+    (void)node;
+}
 
-void Visitor::visit(ExprUnaryOp* node) {}
+void Visitor::visit(ExprUnaryOp* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtOutputNode* node) {}
+void Visitor::visit(StmtOutputNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtInputNode* node) {}
+void Visitor::visit(StmtInputNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtLoopNode* node) {}
+void Visitor::visit(StmtLoopNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtImportNode* node) {}
+void Visitor::visit(StmtImportNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtPackageNode* node) {}
+void Visitor::visit(StmtPackageNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtAsciiNode* node) {}
+void Visitor::visit(StmtAsciiNode* node) {
+    (void)node;
+}
 
-void Visitor::visit(StmtArrayNode* node) {}
+void Visitor::visit(StmtArrayNode* node) {
+    (void)node;
+}
 
 
 void WhichVisitor::visit(ProgramNode* node) {
+    (void)node;
     this->visitor_type_name = "ProgramNode";
 }
 
 void WhichVisitor::visit(ExprNumberNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprNumberNode";
 }
 
 void WhichVisitor::visit(ExprIdentifierNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprIdentifierNode";
 }
 
 void WhichVisitor::visit(ExprAssignmentNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprAssignmentNode";
 }
 
 void WhichVisitor::visit(ExprAddNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprAddNode";
 }
 
 void WhichVisitor::visit(ExprSubNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprSubNode";
 }
 
 void WhichVisitor::visit(ExprMultNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprMultNode";
 }
 
 void WhichVisitor::visit(ExprDivNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprDivNode";
 }
 
 void WhichVisitor::visit(ExprExpoNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprExpoNode";
 }
 
 void WhichVisitor::visit(ExprVariableNode* node) {
+    (void)node;
     this->visitor_type_name = "ExprVariableNode";
 }
 
 void WhichVisitor::visit(ExprBinaryOp* node) {
+    (void)node;
     this->visitor_type_name = "ExprBinaryOp";
 }
 
 void WhichVisitor::visit(ExprUnaryOp* node) {
+    (void)node;
     this->visitor_type_name = "ExprUnaryOp";
 }
 
 void WhichVisitor::visit(StmtOutputNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtOutputNode";
 }
 
 void WhichVisitor::visit(StmtInputNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtInputNode";
 }
 
 void WhichVisitor::visit(StmtLoopNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtLoopNode";
 }
 
 void WhichVisitor::visit(StmtImportNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtImportNode";
 }
 
 void WhichVisitor::visit(StmtPackageNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtPackageNode";
 }
 
 void WhichVisitor::visit(StmtAsciiNode* node) {
+    (void)node;
     this->visitor_type_name = "StmtAsciiNode";
 }
 
 void WhichVisitor::visit(StmtArrayNode *node) {
+    (void)node;
     this->visitor_type_name = "StmtArrayNode";
 }
 
@@ -174,6 +231,14 @@ void IdentifierNameGetterVisitor::visit(ExprIdentifierNode *node) {
     this->_name = node->name;
 }
 
+void LoopIterationCountIdentifierAssignAndGetterVisitor::visit(StmtLoopNode *node) {
+    node->iteration_count_identifier = this->_name;
+}
+
+void LoopIterationCountGetterVisitor::visit(StmtLoopNode *node) {
+    this->_name = node->iteration_count_identifier;
+}
+
 
 tc_Bitset VariableValueGetterVisitor::getValue() const {
     return this->_value;
@@ -203,6 +268,15 @@ std::string IdentifierNameGetterVisitor::getName() const {
     return this->_name;
 }
 
+std::string LoopIterationCountIdentifierAssignAndGetterVisitor::getName() const {
+    return this->_name;
+}
+
+std::string LoopIterationCountGetterVisitor::getName() const {
+    return this->_name;
+}
+
+
 
 // Implement the AST base class methods
 void AST::addChild(std::shared_ptr<AST> child) {
@@ -230,6 +304,7 @@ void AST::addParent(std::shared_ptr<AST> parent) {
 }
 
 void AST::accept(Visitor* visitor) {
+    (void)visitor;
 }
 
 // TODO ACCEPT

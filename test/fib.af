@@ -1,0 +1,17 @@
+[-] => a
+[+] => b
+
+[] => next
+[++++] => count
+
+
+<a, b> => fib
+
+(:count ${
+    !{a + b} => next
+    <next> => fib
+    !{b} => a
+    !{next} => b
+})
+
+<<@ fib

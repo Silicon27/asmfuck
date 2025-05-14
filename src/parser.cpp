@@ -39,12 +39,53 @@ std::vector<Token> Parser::G_tokens() const {
     return this->tokens;
 }
 
+std::vector<Token> Parser::G_unfilteredTokens() const {
+    return this->unfilteredTokens;
+}
+
+std::map<int, std::string> Parser::G_unfilteredLines() const {
+    return this->unfilteredLines;
+}
+
+int Parser::G_allowed_errors() const {
+    return this->allowed_errors;
+}
+
+bool Parser::G_handle_errors() const {
+    return this->handle_errors;
+}
+
+ErrorPack Parser::G_error_pack() const {
+    return this->error_pack;
+}
+
+std::shared_ptr<AST> Parser::G_currentNode() const {
+    return this->currentNode;
+}
+
 // #[Setters<Impl>]
 void Parser::S_program(std::shared_ptr<ProgramNode> Pn) {
     this->program = std::move(Pn);
 }
 
+void Parser::S_handle_errors(bool handle_errors) {
+    this->handle_errors = handle_errors;
+}
 
+
+std::vector<Token> Parser::subarray_creator_from_scope(int &pos) {
+        int amount = 0;
+        const int initialPos = pos;
+        do {
+            if (this->tokens[pos].value == "{") {
+                ++amount;
+            } else if (this->tokens[pos].value == "}") {
+                --amount;
+            }
+            ++pos;
+        } while (amount != 0 && pos < static_cast<int>(this->tokens.size()));
+        return {this->tokens.begin() + (initialPos+1), this->tokens.begin() + (pos-1)};
+}
 
 
 
@@ -58,11 +99,18 @@ std::unique_ptr<Parser> Parser::createParser(const std::string filename, const s
 template <char const* tToken>
 Parser::Generic_pc<tToken>::Generic_pc(int &pos, const std::vector<Token> &tokens)
     : pos(pos), tokens(tokens), error() {
+    this->operator|=(tcomp::Error{
+        .filepath = "",
+        .type = tcomp::ErrorType::SYNTAX_ERROR,
+        .Xmessage = "Expected '" + std::string(tToken) + "'",
+        .line = tokens[pos].line,
+        .column = tokens[pos].column
+    });
 }
 
 template <char const* tToken>
 bool Parser::Generic_pc<tToken>::operator()() {
-    if (pos < tokens.size() && tokens[pos].value == tToken) {
+    if (pos < static_cast<int>(tokens.size()) && tokens[pos].value == tToken) {
         ++pos;
         return true;
     }
@@ -92,8 +140,24 @@ bool Parser::IsDigit::predicate(const Token& token) {
 }
 
 bool Parser::more_than_allowed_errors() const {
-    return error_pack.errors.size() > allowed_errors;
+    return static_cast<int>(error_pack.errors.size()) > allowed_errors;
 }
+
+std::string Parser::identifier_parser(int &pos) {
+    if (tokens[pos].type == TokenType::IDENTIFIER) {
+        ++pos;
+        return tokens[pos-1].value;
+    }
+    this->error_pack.augment(tcomp::Error{
+        .filepath = this->filename,
+        .type = tcomp::ErrorType::SYNTAX_ERROR,
+        .Xmessage = "Expected identifier",
+        .line = tokens[pos].line,
+        .column = tokens[pos].column
+    });
+    return "";
+}
+
 
 
 void Parser::parse_variable(int &pos) {
@@ -102,48 +166,12 @@ void Parser::parse_variable(int &pos) {
     Generic_pc<parser_constants::TOKEN_PLUS> plus(pos, tokens);
     Generic_pc<parser_constants::TOKEN_MINUS> minus(pos, tokens);
     Generic_pc<parser_constants::TOKEN_EQ_ARROW> eq_arrow(pos, tokens);
-    
-    left_bracket |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '['",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-    right_bracket |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected ']'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-    plus |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '+'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-    minus |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '-'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-    eq_arrow |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '=>'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
 
     this->consume(left_bracket);
 
     std::vector<bool> bits;
 
-    while (pos < tokens.size()) {
+    while (pos < static_cast<int>(tokens.size())) {
         if (IsDigit::predicate(tokens[pos])) {
             int num = std::stoi(tokens[pos].value); pos++;
 
@@ -184,7 +212,7 @@ void Parser::parse_variable(int &pos) {
     this->consume(eq_arrow);
 
     // #[Identifier]
-    std::string name = tokens[pos].value; pos++;
+    std::string name = this->identifier_parser(pos);
 
     // TODO add better error recovery
 
@@ -201,20 +229,12 @@ void Parser::parse_variable(int &pos) {
 void Parser::parse_out(int &pos) {
     Generic_pc<parser_constants::TOKEN_LEFT_SHIFT> left_shift(pos, tokens);
 
-    left_shift |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected ']'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-
     auto outNode = std::make_shared<StmtOutputNode>();
 
     this->consume(left_shift);
 
     // #[Identifier]
-    std::string name = tokens[pos].value; pos++;
+    std::string name = this->identifier_parser(pos);
 
     OutputNameAssignVisitor visitor(name);
 
@@ -228,38 +248,6 @@ void Parser::parse_array(int &pos) {
     Generic_pc<parser_constants::TOKEN_BIGGER> bigger(pos, tokens);
     Generic_pc<parser_constants::TOKEN_COMMA> comma(pos, tokens);
     Generic_pc<parser_constants::TOKEN_EQ_ARROW> eq_arrow(pos, tokens);
-
-    less |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '<'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-
-    bigger |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '>'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-
-    comma |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected ','",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
-
-    eq_arrow |= tcomp::Error{
-        .filepath = this->filename,
-        .type = tcomp::ErrorType::SYNTAX_ERROR,
-        .Xmessage = "Expected '=>'",
-        .line = tokens[pos].line,
-        .column = tokens[pos].column
-    };
 
     this->consume(less);
 
@@ -291,7 +279,7 @@ void Parser::parse_array(int &pos) {
     this->consume(bigger);
     this->consume(eq_arrow);
 
-    std::string name = tokens[pos].value; pos++;
+    std::string name = this->identifier_parser(pos);
 
     arrayNode->name = name;
 
@@ -299,9 +287,49 @@ void Parser::parse_array(int &pos) {
 
 }
 
+void Parser::parse_loop(int &pos) {
+    Generic_pc<parser_constants::TOKEN_LEFT_PAREN> left_paren(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_RIGHT_PAREN> right_paren(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_LEFT_BRACE> left_brace(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_RIGHT_BRACE> right_brace(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_DOLLAR> dollar(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_COLON> colon(pos, tokens);
+
+
+    this->consume(left_paren);
+    this->consume(colon);
+
+    std::string iteration_count_variable = this->identifier_parser(pos);
+
+    this->consume(dollar);
+
+    // TODO add all operations inside the loop as a child of the loop node
+
+    auto loopNode = std::make_shared<StmtLoopNode>();
+
+    std::vector<Token> sub_tokens = this->subarray_creator_from_scope(pos);
+
+    Parser sub_parser(this->filename, sub_tokens, this->unfilteredTokens, this->unfilteredLines, this->error_pack, false);
+    sub_parser.parse();
+    std::shared_ptr<ProgramNode> sub_program = sub_parser.G_program();
+    this->error_pack.merge(sub_parser.G_error_pack());
+
+    for (auto &child : sub_program->getChildren()) {
+        loopNode->addChild(child);
+    }
+
+    this->consume(right_paren);
+
+    LoopIterationCountIdentifierAssignAndGetterVisitor visitor(iteration_count_variable);
+    loopNode->accept(&visitor);
+
+    this->currentNode->addChild(loopNode);
+}
+
+
 
 void Parser::parse() {
-    for (int pos = 0; pos < tokens.size();) {
+    for (int pos = 0; pos < static_cast<int>(tokens.size());) {
         const auto &token = tokens[pos];
         if (token.type == TokenType::SYMBOL) {
             if (token.value == "[")
@@ -310,6 +338,8 @@ void Parser::parse() {
                 parse_out(pos);
             else if (token.value == "<")
                 parse_array(pos);
+            else if (token.value == "(")
+                parse_loop(pos);
 
 
         } else if (token.type == TokenType::KEYWORD) {
@@ -325,6 +355,8 @@ void Parser::parse() {
         }
     }
 
-    ErrorHandler E_handler(this->error_pack, this->unfilteredTokens, this->unfilteredLines);
-    E_handler.handle();
+    if (this->handle_errors) {
+        ErrorHandler E_handler(this->error_pack, this->unfilteredTokens, this->unfilteredLines);
+        E_handler.handle();
+    }
 }

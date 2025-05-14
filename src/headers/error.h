@@ -10,6 +10,7 @@ namespace tcomp {
         RUNTIME_ERROR = 1,
         SYNTAX_ERROR = 2,
         SEMANTIC_ERROR = 3,
+        PARSER_ERROR = 4,
     };
 
     struct Error {
@@ -25,6 +26,8 @@ struct ErrorPack {
     std::vector<tcomp::Error> errors;
 
     void augment(const tcomp::Error &error);
+
+    void merge(const ErrorPack & error_pack);
 };
 
 std::string getErrorType(tcomp::ErrorType type, tcomp::Error error);
