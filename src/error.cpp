@@ -20,6 +20,10 @@ void ErrorPack::augment(const tcomp::Error &error) {
     this->errors.push_back(error);
 }
 
+void ErrorPack::merge(const ErrorPack &error_pack) {
+    this->errors.insert(this->errors.end(), error_pack.errors.begin(), error_pack.errors.end());
+}
+
 
 std::unordered_map<tcomp::ErrorType, std::string> errorTypes = {
     {tcomp::ErrorType::RUNTIME_ERROR, "Runtime Error Occured At {}:{}, in file {}",},

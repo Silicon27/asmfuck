@@ -32,14 +32,15 @@ namespace parser_constants {
     inline constexpr char TOKEN_RIGHT_PAREN[] = ")";
     inline constexpr char TOKEN_LEFT_BRACE[] = "{";
     inline constexpr char TOKEN_RIGHT_BRACE[] = "}";
+    inline constexpr char TOKEN_DOLLAR[] = "$";
 }
 
 class Parser {
 public:
-    Parser(const std::string filename, std::vector<Token> tokens, std::vector<Token> unfilteredTokens, std::map<int, std::string> unfilteredLines, ErrorPack error_pack, int allowed_errors = 20);
+    Parser(std::string filename, std::vector<Token> tokens, std::vector<Token> unfilteredTokens, std::map<int, std::string> unfilteredLines, ErrorPack error_pack, int allowed_errors = 20);
     ~Parser() = default;
 
-    static std::unique_ptr<Parser> createParser(const std::string filename, const std::vector<Token> &tokens, const std::vector<Token> &unfilteredTokens, const std::map<int, std::string> &
+    static std::unique_ptr<Parser> createParser(std::string filename, const std::vector<Token> &tokens, const std::vector<Token> &unfilteredTokens, const std::map<int, std::string> &
                                          unfilteredLines, ErrorPack &error_pack, int allowed_errors = 20);
 
     template <const char* tToken>
@@ -77,17 +78,29 @@ public:
     template <char const* tToken>
     void consume(Generic_pc<tToken> &parser);
 
+    [[nodiscard]] std::vector<Token> subarray_creator_from_scope(int &pos);
+
+    [[nodiscard]] std::string identifier_parser(int &pos);
+
     [[nodiscard]] bool more_than_allowed_errors() const;
 
     // #[Getters<Def>]
     [[nodiscard]] std::shared_ptr<ProgramNode> G_program() const;
     [[nodiscard]] std::vector<Token> G_tokens() const;
+    [[nodiscard]] std::vector<Token> G_unfilteredTokens() const;
+    [[nodiscard]] std::map<int, std::string> G_unfilteredLines() const;
+    [[nodiscard]] int G_allowed_errors() const;
+    [[nodiscard]] bool G_handle_errors() const;
+    [[nodiscard]] ErrorPack G_error_pack() const;
+    [[nodiscard]] std::shared_ptr<AST> G_currentNode() const;
 
     // #[Setters<Def>]
     void S_program(std::shared_ptr<ProgramNode> Pn);
+    void S_handle_errors(bool handle_errors);
 
     void parse_variable(int &pos);
     void parse_array(int &pos);
+    void parse_loop(int &pos);
     void parse_collection(int &pos);
     void parse_out(int &pos);
 
@@ -99,6 +112,7 @@ private:
     std::vector<Token> unfilteredTokens;
     std::map<int, std::string> unfilteredLines;
     int allowed_errors;
+    bool handle_errors = true;
     ErrorPack error_pack;
     std::shared_ptr<ProgramNode> program;
     std::shared_ptr<AST> currentNode;
