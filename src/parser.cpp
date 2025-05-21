@@ -130,6 +130,21 @@ void Parser::consume(Generic_pc<tToken> &parser) {
     }   
 }
 
+
+template<char const *... tToken>
+void Parser::consume_choice(std::vector<std::function<void()>> &choice_functions, Generic_pc<tToken>... parsers) {
+    int i = 0;
+    bool found = false;
+    auto do_parser_stuff = [&i, &choice_functions, &found](const auto& parser) {
+        if (!found && parser()) {
+            choice_functions[i]();
+            found = true;
+        }
+    };
+    (do_parser_stuff(parsers), ...);
+}
+
+
 bool Parser::IsDigit::check(const std::string& value) {
     return !value.empty() && std::ranges::all_of(value, ::isdigit);
 }
@@ -226,17 +241,23 @@ void Parser::parse_variable(int &pos) {
     this->currentNode->addChild(variable);
 }
 
-void Parser::parse_out(int &pos) {
+void Parser::parse_out(int &pos, bool output_as_normal) {
     Generic_pc<parser_constants::TOKEN_LEFT_SHIFT> left_shift(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_LEFT_SHIFT_AT> left_shift_at(pos, tokens);
+
 
     auto outNode = std::make_shared<StmtOutputNode>();
 
-    this->consume(left_shift);
+    if (output_as_normal) {
+        this->consume(left_shift_at);
+    } else {
+        this->consume(left_shift);
+    }
 
     // #[Identifier]
     std::string name = this->identifier_parser(pos);
 
-    OutputNameAssignVisitor visitor(name);
+    OutputAssignVisitor visitor(name, output_as_normal);
 
     outNode->accept(&visitor);
 
@@ -326,6 +347,47 @@ void Parser::parse_loop(int &pos) {
     this->currentNode->addChild(loopNode);
 }
 
+void Parser::parse_expression(int &pos) {
+    Generic_pc<parser_constants::TOKEN_NOT> exclamation(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_LEFT_BRACE> left_brace(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_RIGHT_BRACE> right_brace(pos, tokens);
+    Generic_pc<parser_constants::TOKEN_EQ_ARROW> eq_arrow(pos, tokens);
+
+    // TODO impl parse-time expression evaluation
+
+    auto evalNode = std::make_shared<ExprEvaluateNode>("");
+    auto assignedToIdentifierNode = std::make_shared<ExprIdentifierNode>();
+
+    this->consume(exclamation);
+    this->consume(left_brace);
+    std::string expression;
+    std::vector<std::string> variables;
+
+    while (tokens[pos].value != "}") {
+        if (tokens[pos].type == TokenType::IDENTIFIER) {
+            expression += "{}";
+            variables.push_back(tokens[pos].value);
+            ++pos;
+            continue;
+        }
+        expression += tokens[pos].value;
+        ++pos;
+    }
+    this->consume(right_brace);
+
+    this->consume(eq_arrow);
+
+    std::string identifier = this->identifier_parser(pos);
+
+    evalNode->expression = expression;
+    evalNode->variables = variables;
+    
+    assignedToIdentifierNode->name = identifier;
+
+    evalNode->addChild(assignedToIdentifierNode);
+
+    this->currentNode->addChild(evalNode);
+}
 
 
 void Parser::parse() {
@@ -335,12 +397,15 @@ void Parser::parse() {
             if (token.value == "[")
                 parse_variable(pos);
             else if (token.value == "<<")
-                parse_out(pos);
+                parse_out(pos, false);
+            else if (token.value == "<<@")
+                parse_out(pos, true);
             else if (token.value == "<")
                 parse_array(pos);
             else if (token.value == "(")
                 parse_loop(pos);
-
+            else if (token.value == "!")
+                parse_expression(pos);
 
         } else if (token.type == TokenType::KEYWORD) {
             // Handle identifier

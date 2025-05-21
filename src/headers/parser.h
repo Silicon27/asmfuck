@@ -33,6 +33,7 @@ namespace parser_constants {
     inline constexpr char TOKEN_LEFT_BRACE[] = "{";
     inline constexpr char TOKEN_RIGHT_BRACE[] = "}";
     inline constexpr char TOKEN_DOLLAR[] = "$";
+    inline constexpr char TOKEN_LEFT_SHIFT_AT[] = "<<@";
 }
 
 class Parser {
@@ -78,6 +79,9 @@ public:
     template <char const* tToken>
     void consume(Generic_pc<tToken> &parser);
 
+    template <char const*... tToken>
+    void consume_choice(std::vector<std::function<void()>> &choice_functions, Generic_pc<tToken>... parsers);
+
     [[nodiscard]] std::vector<Token> subarray_creator_from_scope(int &pos);
 
     [[nodiscard]] std::string identifier_parser(int &pos);
@@ -102,7 +106,8 @@ public:
     void parse_array(int &pos);
     void parse_loop(int &pos);
     void parse_collection(int &pos);
-    void parse_out(int &pos);
+    void parse_out(int &pos, bool output_as_normal);
+    void parse_expression(int &pos);
 
     void parse();
 

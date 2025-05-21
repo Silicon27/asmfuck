@@ -1,14 +1,14 @@
-[-] => a
-[+] => b
-
-[] => next
-[++++] => count
-
+!{0} => a
+!{1} => b
 
 <a, b> => fib
 
+!{0} => next
+
+!{10} => count
+
 (:count ${
-    !{a + b} => next
+    !{a+b} => next
     <next> => fib
     !{b} => a
     !{next} => b

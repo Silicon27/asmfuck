@@ -13,6 +13,10 @@ tc_Bitset::tc_Bitset(const char *bits) {
     this->bits = bits;
 }
 
+tc_Bitset::tc_Bitset(std::string bits) {
+    this->bits = bits;
+}
+
 tc_Bitset::tc_Bitset(std::vector<bool> bits) {
     for (auto bit : bits) {
         this->bits += bit ? '1' : '0';
@@ -26,6 +30,10 @@ std::string tc_Bitset::get_bits() const {
 
 // Visitor static method implementations
 void Visitor::visit(ProgramNode* node) {
+    (void)node;
+}
+
+void Visitor::visit(ExprEvaluateNode* node) {
     (void)node;
 }
 
@@ -105,6 +113,11 @@ void Visitor::visit(StmtArrayNode* node) {
 void WhichVisitor::visit(ProgramNode* node) {
     (void)node;
     this->visitor_type_name = "ProgramNode";
+}
+
+void WhichVisitor::visit(ExprEvaluateNode* node) {
+    (void)node;
+    this->visitor_type_name = "ExprEvaluateNode";
 }
 
 void WhichVisitor::visit(ExprNumberNode* node) {
@@ -202,8 +215,9 @@ void BitAssignVisitor::visit(ExprVariableNode *node) {
     node->bits = this->_bitsToAssign;
 }
 
-void OutputNameAssignVisitor::visit(StmtOutputNode *node) {
+void OutputAssignVisitor::visit(StmtOutputNode *node) {
     node->name = this->_outputName;
+    node->output_as_normal = this->_output_as_normal;
 }
 
 void VariableNameAssignVisitor::visit(ExprVariableNode *node) {
@@ -215,8 +229,9 @@ void VariableValueGetterVisitor::visit(ExprVariableNode *node) {
     this->_name = node->name;
 }
 
-void OutputNameGetterVisitor::visit(StmtOutputNode *node) {
+void OutputGetterVisitor::visit(StmtOutputNode *node) {
     this->_name = node->name;
+    this->_output_as_normal = node->output_as_normal;
 }
 
 void IdentifierNameAssignVisitor::visit(ExprIdentifierNode *node) {
@@ -239,6 +254,11 @@ void LoopIterationCountGetterVisitor::visit(StmtLoopNode *node) {
     this->_name = node->iteration_count_identifier;
 }
 
+void EvaluateNodeExpressionGetterVisitor::visit(ExprEvaluateNode *node) {
+    this->_expression = node->expression;
+    this->_variables = node->variables;
+}
+
 
 tc_Bitset VariableValueGetterVisitor::getValue() const {
     return this->_value;
@@ -248,8 +268,11 @@ std::string VariableValueGetterVisitor::getName() const {
     return this->_name;
 }
 
-std::string OutputNameGetterVisitor::getName() const {
+std::string OutputGetterVisitor::getName() const {
     return this->_name;
+}
+bool OutputGetterVisitor::getOutputAsNormal() const {
+    return this->_output_as_normal;
 }
 
 std::string IdentifierNameAssignVisitor::getName() const {
@@ -276,7 +299,13 @@ std::string LoopIterationCountGetterVisitor::getName() const {
     return this->_name;
 }
 
+std::string EvaluateNodeExpressionGetterVisitor::getExpression() const {
+    return this->_expression;
+}
 
+std::vector<std::string> EvaluateNodeExpressionGetterVisitor::getVariables() const {
+    return this->_variables;
+}
 
 // Implement the AST base class methods
 void AST::addChild(std::shared_ptr<AST> child) {
@@ -312,6 +341,11 @@ void AST::accept(Visitor* visitor) {
 void ProgramNode::accept(Visitor* visitor) {
     visitor->visit(this);
 }
+
+void ExprEvaluateNode::accept(Visitor *visitor) {
+    visitor->visit(this);
+}
+
 
 void ExprNumberNode::accept(Visitor* visitor) {
     visitor->visit(this);
@@ -391,6 +425,12 @@ void ProgramNode::addChild(std::shared_ptr<AST> child) {
     children.push_back(child);
     child->addParent(shared_from_this());
 }
+
+void ExprEvaluateNode::addChild(std::shared_ptr<AST> child) {
+    children.push_back(child);
+    child->addParent(shared_from_this());
+}
+
 
 void ExprNumberNode::addChild(std::shared_ptr<AST> child) {
     children.push_back(child);
@@ -485,6 +525,14 @@ void StmtArrayNode::addChild(std::shared_ptr<AST> child) {
 // TODO REMOVE CHILD
 
 void ProgramNode::removeChild(std::shared_ptr<AST> child) {
+    auto it = std::ranges::find(children, child);
+    if (it != children.end()) {
+        children.erase(it);
+        child->addParent(nullptr);
+    }
+}
+
+void ExprEvaluateNode::removeChild(std::shared_ptr<AST> child) {
     auto it = std::ranges::find(children, child);
     if (it != children.end()) {
         children.erase(it);
@@ -647,6 +695,13 @@ void ProgramNode::removeAllChildren() {
     children.clear();
 }
 
+void ExprEvaluateNode::removeAllChildren() {
+    for (const auto& child : children) {
+        child->addParent(nullptr);
+    }
+    children.clear();
+}
+
 void ExprNumberNode::removeAllChildren() {
     for (const auto& child : children) {
         child->addParent(nullptr);
@@ -776,6 +831,10 @@ void StmtArrayNode::removeAllChildren() {
 // TODO ADD PARENT
 
 void ProgramNode::addParent(std::shared_ptr<AST> parent) {
+    this->parent = parent;
+}
+
+void ExprEvaluateNode::addParent(std::shared_ptr<AST> parent) {
     this->parent = parent;
 }
 

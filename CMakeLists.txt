@@ -8,6 +8,7 @@ add_executable(turingcomplete main.cpp
         src/ast.cpp
         src/error.cpp
         src/semantic_analysis.cpp
+        src/tools.cpp
 )
 
 target_compile_options(turingcomplete PRIVATE

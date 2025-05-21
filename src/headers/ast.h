@@ -11,6 +11,7 @@ class tc_Bitset {
 public:
     explicit tc_Bitset(const char* bits);
     explicit tc_Bitset(std::vector<bool> bits);
+    explicit tc_Bitset(std::string bits);
 
     [[nodiscard]] std::string get_bits() const;
 
@@ -34,6 +35,7 @@ public:
     virtual ~Visitor() = default;
 
     virtual void visit(class ProgramNode* node);
+    virtual void visit(class ExprEvaluateNode* node);
     virtual void visit(class ExprNumberNode* node);
     virtual void visit(class ExprIdentifierNode* node);
     virtual void visit(class ExprAssignmentNode* node);
@@ -59,6 +61,7 @@ public:
     WhichVisitor () = default;
 
     void visit(ProgramNode* node) override;
+    void visit(ExprEvaluateNode* node) override;
     void visit(ExprNumberNode* node) override;
     void visit(ExprIdentifierNode* node) override;
     void visit(ExprAssignmentNode* node) override;
@@ -102,14 +105,15 @@ private:
     tc_Bitset _bitsToAssign;
 };
 
-class OutputNameAssignVisitor final : public Visitor {
+class OutputAssignVisitor final : public Visitor {
 public:
-    explicit OutputNameAssignVisitor(std::string  name) : _outputName(std::move(name)) {}
+    OutputAssignVisitor(std::string  name, const bool output_as_normal) : _outputName(std::move(name)), _output_as_normal(output_as_normal) {}
 
     void visit(StmtOutputNode* node) override;
 
 private:
     std::string _outputName;
+    bool _output_as_normal;
 };
 
 class VariableNameAssignVisitor final : public Visitor {
@@ -136,16 +140,18 @@ private:
     std::string _name;
 };
 
-class OutputNameGetterVisitor final : public Visitor {
+class OutputGetterVisitor final : public Visitor {
 public:
-    OutputNameGetterVisitor() = default;
+    OutputGetterVisitor() = default;
 
     void visit(StmtOutputNode* node) override;
 
     [[nodiscard]] std::string getName() const;
+    [[nodiscard]] bool getOutputAsNormal() const;
 
 private:
     std::string _name;
+    bool _output_as_normal = false;
 };
 
 class IdentifierNameAssignVisitor final : public Visitor {
@@ -212,6 +218,20 @@ public:
 
 private:
     std::string _name;
+};
+
+class EvaluateNodeExpressionGetterVisitor final : public Visitor {
+public:
+    EvaluateNodeExpressionGetterVisitor() = default;
+
+    void visit(ExprEvaluateNode* node) override;
+
+    [[nodiscard]] std::string getExpression() const;
+    [[nodiscard]] std::vector<std::string> getVariables() const;
+
+private:
+    std::string _expression;
+    std::vector<std::string> _variables;
 };
 
 /**
@@ -292,6 +312,32 @@ public:
     void removeAllChildren() override;
 
     void addParent(std::shared_ptr<AST> parent) override;
+};
+
+/**
+ * @class ExprEvaluateNode
+ * @brief Represents an expression evaluation node in the abstract syntax tree (AST).
+ *
+ * The ExprEvaluateNode class is used to encapsulate an expression as a string and provides methods
+ * to manage its relationships within the AST structure. It allows adding, removing, and managing
+ * child nodes, as well as interacting with a parent node. The expression can be visited by a
+ * Visitor for processing or evaluation.
+ */
+class ExprEvaluateNode final : public ExpressionNode {
+public:
+    explicit ExprEvaluateNode(std::string expression) : expression(expression) {}
+    ~ExprEvaluateNode() override = default;
+
+    void accept(Visitor *visitor) override;
+
+    void addChild(std::shared_ptr<AST> child) override;
+    void removeChild(std::shared_ptr<AST> child) override;
+    void removeAllChildren() override;
+
+    void addParent(std::shared_ptr<AST> parent) override;
+
+    std::string expression;
+    std::vector<std::string> variables;
 };
 
 /**
@@ -684,6 +730,7 @@ public:
     void addParent(std::shared_ptr<AST> parent) override;
 
     std::string name;
+    bool output_as_normal = false;
 };
 
 /**

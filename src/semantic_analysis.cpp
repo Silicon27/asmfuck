@@ -13,12 +13,15 @@
 
 
 
+#include "headers/exprtk.hpp"
 #include "headers/ast.h"
 #include "headers/lexer.h"
 #include "headers/error.h"
 #include "headers/semantic_analysis.h"
+#include "headers/tools.h"
 
 
+// NOTICE ================ MSB needs to be considered for all bit to int conversions
 
 [[nodiscard]] char sem_analysis::binary_to_char(const std::string &binary) {
     return static_cast<char>(std::bitset<8>(binary).to_ulong());
@@ -50,6 +53,29 @@
     return static_cast<int64_t>(unsigned_value);
 }
 
+[[nodiscard]] std::string sem_analysis::int_to_binary(int64_t number) {
+    if (number == 0) {
+        return "0";
+    }
+
+    const bool isNegative = (number < 0);
+    auto absNumber = static_cast<unsigned int>(std::abs(number));
+
+    std::string binary;
+    while (absNumber > 0) {
+        binary.insert(binary.begin(), (absNumber % 2) ? '1' : '0');
+        absNumber /= 2;
+    }
+
+    if (isNegative) {
+        binary.insert(binary.begin(), '1');
+    } else {
+        binary.insert(binary.begin(), '0');
+    }
+
+    return binary;
+}
+
 
 sem_analysis::SemanticAnalyser::SemanticAnalyser(std::shared_ptr<ProgramNode> program, std::string filename) : program_(std::move(program)), filename(std::move(filename)) {}
 sem_analysis::SemanticAnalyser::SemanticAnalyser(std::shared_ptr<ProgramNode> program, std::unordered_map<std::string, SymbolInfo> symbol_table, std::string filename) : symbol_table(std::move(symbol_table)), program_(std::move(program)), filename(std::move(filename)) {}
@@ -71,7 +97,7 @@ void sem_analysis::SemanticAnalyser::analyze() {
             Variable var = {name, value};
             this->symbol_table.emplace(name, SymbolInfo(var));
         } else if (which_visitor.visitor_type_name == "StmtOutputNode") {
-            OutputNameGetterVisitor visitor;
+            OutputGetterVisitor visitor;
             node->accept(&visitor);
 
             std::string name = visitor.getName();
@@ -79,26 +105,36 @@ void sem_analysis::SemanticAnalyser::analyze() {
             if (std::holds_alternative<Variable>(this->symbol_table[name])) {
                 Variable var = std::get<Variable>(this->symbol_table[name]);
 
-                std::cout << var.bitset.get_bits() << std::endl;
+                if (visitor.getOutputAsNormal()) {
+                    std::cout << binary_to_int64_t(var.bitset.get_bits(), true) << std::endl;
+                } else {
+                    std::cout << var.bitset.get_bits() << std::endl;
+                }
 
             } else if (std::holds_alternative<Array>(this->symbol_table[name])) {
                 Array arr = std::get<Array>(this->symbol_table[name]);
 
                 std::string constructed_string;
                 // convert all bits to chars to print a string
-                for (const auto &var : arr.variables) {
-                    if (var.bitset.get_bits().length() != 8) {
-                        this->error_pack.augment(tcomp::Error{
-                            .filepath = this->filename,
-                            .type = tcomp::ErrorType::SEMANTIC_ERROR,
-                            .Xmessage = "Array variable is not 8 bits",
-                            .line = 0,
-                            .column = 0
-                        });
-                        continue;
+                if (visitor.getOutputAsNormal()) {
+                    for (const auto &val : arr.variables) {
+                        constructed_string += std::to_string(binary_to_int64_t(val.get_bits(), true)) + " ";
                     }
+                } else {
+                    for (const auto &val : arr.variables) {
+                        if (val.get_bits().length() != 8) {
+                            this->error_pack.augment(tcomp::Error{
+                                .filepath = this->filename,
+                                .type = tcomp::ErrorType::SEMANTIC_ERROR,
+                                .Xmessage = "Array variable is not 8 bits",
+                                .line = 0,
+                                .column = 0
+                            });
+                            continue;
+                        }
 
-                    constructed_string += binary_to_char(var.bitset.get_bits());
+                        constructed_string += binary_to_char(val.get_bits());
+                    }
                 }
                 std::cout << constructed_string << '\n';
 
@@ -121,10 +157,8 @@ void sem_analysis::SemanticAnalyser::analyze() {
 
                 std::string var_name = var_visitor.getName();
 
-                tc_Bitset var_value = std::get<Variable>(this->symbol_table[var_name]).bitset;
-
-                Variable var = {var_name, var_value};
-                arr.variables.push_back(var);
+                tc_Bitset value = std::get<Variable>(this->symbol_table[var_name]).bitset;
+                arr.variables.push_back(value);
             }
 
             /*
@@ -163,6 +197,50 @@ void sem_analysis::SemanticAnalyser::analyze() {
             SemanticAnalyser sub_analyser(sub_program, this->symbol_table, this->filename);
             for (; iteration_count > 0; --iteration_count) {
                 sub_analyser.analyze();
+            }
+            this->symbol_table = sub_analyser.symbol_table;
+            this->error_pack.merge(sub_analyser.error_pack);
+        } else if (which_visitor.getVisitorTypeName() == "ExprEvaluateNode") {
+            EvaluateNodeExpressionGetterVisitor visitor;
+            node->accept(&visitor);
+            std::string expression = visitor.getExpression();
+            auto variables = visitor.getVariables();
+            std::vector<std::string> variable_values;
+            for (const auto &var : variables) {
+                if (this->symbol_table.contains(var)) {
+                    variable_values.push_back(std::to_string(binary_to_int64_t(std::get<Variable>(this->symbol_table[var]).bitset.get_bits(), true)));
+                } else {
+                    // TODO impl cutoff errors, which when triggered would terminate the program immediately
+                    this->error_pack.augment(tcomp::Error{
+                        .filepath = this->filename,
+                        .type = tcomp::ErrorType::SEMANTIC_ERROR,
+                        .Xmessage = "Variable not found in symbol table: " + var,
+                        .line = 0,
+                        .column = 0
+                    });
+                }
+            }
+
+            expression = asmfmt::rformat(expression, variable_values);
+
+            exprtk::expression<double> expr;
+            exprtk::parser<double> parser;
+
+            parser.compile(expression, expr);
+
+            std::shared_ptr<AST> assignToNode = node->getChildren()[0]; // TODO add multi assignment in the future
+
+            IdentifierNameGetterVisitor assignToVisitor;
+            assignToNode->accept(&assignToVisitor);
+            std::string assignToName = assignToVisitor.getName();
+
+            if (this->symbol_table.contains(assignToName)) {
+                Variable var = std::get<Variable>(this->symbol_table[assignToName]);
+                var.bitset = tc_Bitset(int_to_binary(static_cast<int64_t>(expr.value())));
+                this->symbol_table[assignToName] = SymbolInfo(var);
+            } else {
+                Variable new_var(assignToName, tc_Bitset(int_to_binary(static_cast<int64_t>(expr.value()))));
+                this->symbol_table[assignToName] = SymbolInfo(new_var);
             }
         }
     }
