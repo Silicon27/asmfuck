@@ -195,11 +195,30 @@ void sem_analysis::SemanticAnalyser::analyze() {
             }
 
             SemanticAnalyser sub_analyser(sub_program, this->symbol_table, this->filename);
-            for (; iteration_count > 0; --iteration_count) {
+            // Instead of the for loop, use a while loop that refreshes the iteration count.
+            while (true) {
+                // Retrieve the iteration count from the symbol table at the beginning of each iteration.
+                auto it = this->symbol_table.find(visitor.getName());
+                if (it == this->symbol_table.end()) {
+                    throw std::runtime_error("Variable not found in symbol table: " + visitor.getName());
+                }
+                iteration_count = binary_to_int64_t(std::get<Variable>(it->second).bitset.get_bits());
+
+                if (iteration_count <= 0) {
+                    break;
+                }
+                iteration_count--;
+
+                // set
+                this->symbol_table[visitor.getName()] = SymbolInfo(Variable(visitor.getName(), tc_Bitset(int_to_binary(iteration_count))));
+                sub_analyser.symbol_table = this->symbol_table;
+
                 sub_analyser.analyze();
+
+                this->symbol_table = sub_analyser.symbol_table; // TODO make it take the reference instead of reassigning here
+                this->error_pack.merge(sub_analyser.error_pack);
             }
-            this->symbol_table = sub_analyser.symbol_table;
-            this->error_pack.merge(sub_analyser.error_pack);
+
         } else if (which_visitor.getVisitorTypeName() == "ExprEvaluateNode") {
             EvaluateNodeExpressionGetterVisitor visitor;
             node->accept(&visitor);

@@ -274,39 +274,44 @@ void Parser::parse_array(int &pos) {
 
     auto arrayNode = std::make_shared<StmtArrayNode>();
 
-    IdentifierNameAssignVisitor visitor(tokens[pos].value); pos++;
+    // Check if there are any values in the array.
+    if (!bigger()) {
+        IdentifierNameAssignVisitor visitor(tokens[pos].value);
+        // Parse identifier for the first element.
+        auto identifierNode = std::make_shared<ExprIdentifierNode>();
+        identifierNode->accept(&visitor);
+        arrayNode->addChild(identifierNode);
+        pos++;
 
-    auto identifierNode = std::make_shared<ExprIdentifierNode>();
-
-    identifierNode->accept(&visitor);
-
-    arrayNode->addChild(identifierNode);
-
-    while (tokens[pos].value != ">") {
-        if (tokens[pos].value == ",") {
-            this->consume(comma);
-
-            visitor.setName(tokens[pos].value); pos++;
-
-            auto identifierNode2 = std::make_shared<ExprIdentifierNode>();
-            identifierNode2->accept(&visitor);
-
-            arrayNode->addChild(identifierNode2);
-
-            continue;
+        while (tokens[pos].value != ">") {
+            if (tokens[pos].value == ",") {
+                this->consume(comma);
+                visitor.setName(tokens[pos].value);
+                auto identifierNode2 = std::make_shared<ExprIdentifierNode>();
+                identifierNode2->accept(&visitor);
+                arrayNode->addChild(identifierNode2);
+                pos++;
+            } else {
+                // If the token is neither a comma nor the closing token,
+                // TODO add error handling
+                ++pos;
+            }
         }
+        this->consume(bigger);
+    } else {
+        // If there are no values, the '>' token was consumed by bigger().
+        // No additional processing for array values is needed.
     }
 
-    this->consume(bigger);
     this->consume(eq_arrow);
 
+    // Parse the identifier following the '=' arrow.
     std::string name = this->identifier_parser(pos);
-
     arrayNode->name = name;
 
     this->currentNode->addChild(arrayNode);
-
 }
+
 
 void Parser::parse_loop(int &pos) {
     Generic_pc<parser_constants::TOKEN_LEFT_PAREN> left_paren(pos, tokens);

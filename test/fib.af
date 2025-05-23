@@ -5,7 +5,7 @@
 
 !{0} => next
 
-!{10} => count
+!{20} => count
 
 (:count ${
     !{a+b} => next
