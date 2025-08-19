@@ -216,8 +216,14 @@ void BitAssignVisitor::visit(ExprVariableNode *node) {
 }
 
 void OutputAssignVisitor::visit(StmtOutputNode *node) {
-    node->name = this->_outputName;
     node->output_as_normal = this->_output_as_normal;
+    node->is_string_literal = this->_is_string_literal;
+    
+    if (this->_is_string_literal) {
+        node->string_literal = this->_stringLiteral;
+    } else {
+        node->name = this->_outputName;
+    }
 }
 
 void VariableNameAssignVisitor::visit(ExprVariableNode *node) {
@@ -231,7 +237,9 @@ void VariableValueGetterVisitor::visit(ExprVariableNode *node) {
 
 void OutputGetterVisitor::visit(StmtOutputNode *node) {
     this->_name = node->name;
+    this->_string_literal = node->string_literal;
     this->_output_as_normal = node->output_as_normal;
+    this->_is_string_literal = node->is_string_literal;
 }
 
 void IdentifierNameAssignVisitor::visit(ExprIdentifierNode *node) {
@@ -273,6 +281,14 @@ std::string OutputGetterVisitor::getName() const {
 }
 bool OutputGetterVisitor::getOutputAsNormal() const {
     return this->_output_as_normal;
+}
+
+std::string OutputGetterVisitor::getStringLiteral() const {
+    return this->_string_literal;
+}
+
+bool OutputGetterVisitor::getIsStringLiteral() const {
+    return this->_is_string_literal;
 }
 
 std::string IdentifierNameAssignVisitor::getName() const {

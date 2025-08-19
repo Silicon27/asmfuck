@@ -245,7 +245,6 @@ void Parser::parse_out(int &pos, bool output_as_normal) {
     Generic_pc<parser_constants::TOKEN_LEFT_SHIFT> left_shift(pos, tokens);
     Generic_pc<parser_constants::TOKEN_LEFT_SHIFT_AT> left_shift_at(pos, tokens);
 
-
     auto outNode = std::make_shared<StmtOutputNode>();
 
     if (output_as_normal) {
@@ -254,12 +253,20 @@ void Parser::parse_out(int &pos, bool output_as_normal) {
         this->consume(left_shift);
     }
 
-    // #[Identifier]
-    std::string name = this->identifier_parser(pos);
-
-    OutputAssignVisitor visitor(name, output_as_normal);
-
-    outNode->accept(&visitor);
+    // check if next token is a string literal or identifier
+    if (pos < static_cast<int>(tokens.size()) && tokens[pos].type == TokenType::STRING) {
+        // handle string literal
+        std::string str_literal = tokens[pos].value;
+        ++pos;
+        
+        OutputAssignVisitor visitor(str_literal, output_as_normal, true);
+        outNode->accept(&visitor);
+    } else {
+        // handle identifier (original behavior)
+        std::string name = this->identifier_parser(pos);
+        OutputAssignVisitor visitor(name, output_as_normal);
+        outNode->accept(&visitor);
+    }
 
     this->currentNode->addChild(outNode);
 }

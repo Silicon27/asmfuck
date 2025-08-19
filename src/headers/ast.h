@@ -5,6 +5,7 @@
 #pragma once
 #include <utility>
 #include <vector>
+#include <memory>
 
 
 class tc_Bitset {
@@ -107,13 +108,16 @@ private:
 
 class OutputAssignVisitor final : public Visitor {
 public:
-    OutputAssignVisitor(std::string  name, const bool output_as_normal) : _outputName(std::move(name)), _output_as_normal(output_as_normal) {}
+    OutputAssignVisitor(std::string  name, const bool output_as_normal) : _outputName(std::move(name)), _output_as_normal(output_as_normal), _is_string_literal(false) {}
+    OutputAssignVisitor(std::string  string_literal, const bool output_as_normal, bool is_string) : _stringLiteral(std::move(string_literal)), _output_as_normal(output_as_normal), _is_string_literal(is_string) {}
 
     void visit(StmtOutputNode* node) override;
 
 private:
     std::string _outputName;
+    std::string _stringLiteral;
     bool _output_as_normal;
+    bool _is_string_literal;
 };
 
 class VariableNameAssignVisitor final : public Visitor {
@@ -147,11 +151,15 @@ public:
     void visit(StmtOutputNode* node) override;
 
     [[nodiscard]] std::string getName() const;
+    [[nodiscard]] std::string getStringLiteral() const;
     [[nodiscard]] bool getOutputAsNormal() const;
+    [[nodiscard]] bool getIsStringLiteral() const;
 
 private:
     std::string _name;
+    std::string _string_literal;
     bool _output_as_normal = false;
+    bool _is_string_literal = false;
 };
 
 class IdentifierNameAssignVisitor final : public Visitor {
@@ -730,7 +738,9 @@ public:
     void addParent(std::shared_ptr<AST> parent) override;
 
     std::string name;
+    std::string string_literal;
     bool output_as_normal = false;
+    bool is_string_literal = false;
 };
 
 /**

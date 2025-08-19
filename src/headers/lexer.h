@@ -9,6 +9,7 @@ enum class TokenType {
     SYMBOL,
     IDENTIFIER,
     NUMBER,
+    STRING,
     UNKNOWN,
     eof
 };
@@ -73,6 +74,11 @@ public:
                     continue;
                 }
 
+                if (currentChar == '"') {
+                    tokens.push_back(tokenizeString());
+                    continue;
+                }
+
                 if (isSymbolStart(currentChar)) {
                     tokens.push_back(tokenizeSymbol());
                     continue;
@@ -125,6 +131,44 @@ private:
         unfilteredTokens.push_back({type, spaces + ident, lineNumber, column});
         spaces.clear();
         return {type, ident, lineNumber, column};
+    }
+
+    Token tokenizeString() {
+        const int column = static_cast<int>(currentPos) + 1;
+        std::string str;
+        str.reserve(64); // reserve some space for better perf
+        
+        // skip opening quote
+        ++currentPos;
+        
+        while (currentPos < currentLine.size() && currentLine[currentPos] != '"') {
+            if (currentLine[currentPos] == '\\' && currentPos + 1 < currentLine.size()) {
+                // handle escape sequences  
+                ++currentPos;
+                switch (currentLine[currentPos]) {
+                    case 'n': str.push_back('\n'); break;
+                    case 't': str.push_back('\t'); break;
+                    case 'r': str.push_back('\r'); break;
+                    case '\\': str.push_back('\\'); break;
+                    case '"': str.push_back('"'); break;
+                    default: 
+                        str.push_back('\\');
+                        str.push_back(currentLine[currentPos]);
+                        break;
+                }
+            } else {
+                str.push_back(currentLine[currentPos]);
+            }
+            ++currentPos;
+        }
+        
+        if (currentPos < currentLine.size() && currentLine[currentPos] == '"') {
+            ++currentPos; // skip closing quote
+        }
+        
+        unfilteredTokens.push_back({TokenType::STRING, spaces + "\"" + str + "\"", lineNumber, column});
+        spaces.clear();
+        return {TokenType::STRING, str, lineNumber, column};
     }
 
     Token tokenizeSymbol() {
