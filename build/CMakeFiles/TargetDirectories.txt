@@ -1,0 +1,3 @@
+/home/runner/work/asmfuck/asmfuck/build/CMakeFiles/turingcomplete.dir
+/home/runner/work/asmfuck/asmfuck/build/CMakeFiles/edit_cache.dir
+/home/runner/work/asmfuck/asmfuck/build/CMakeFiles/rebuild_cache.dir

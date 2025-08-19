@@ -19,6 +19,7 @@
 #include "headers/error.h"
 #include "headers/semantic_analysis.h"
 #include "headers/tools.h"
+#include <bitset>
 
 
 // NOTICE ================ MSB needs to be considered for all bit to int conversions

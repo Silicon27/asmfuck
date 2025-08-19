@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.h"
+#include <functional>
 
 namespace parser_constants {
     inline constexpr char TOKEN_LEFT_BRACKET[] = "[";
