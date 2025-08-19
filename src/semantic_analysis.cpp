@@ -101,21 +101,27 @@ void sem_analysis::SemanticAnalyser::analyze() {
             OutputGetterVisitor visitor;
             node->accept(&visitor);
 
-            std::string name = visitor.getName();
+            // check if this is a string literal output
+            if (visitor.getIsStringLiteral()) {
+                std::cout << visitor.getStringLiteral() << std::endl;
+            } else {
+                // handle variable output (original logic)
+                std::string name = visitor.getName();
 
-            if (std::holds_alternative<Variable>(this->symbol_table[name])) {
-                Variable var = std::get<Variable>(this->symbol_table[name]);
+                if (std::holds_alternative<Variable>(this->symbol_table[name])) {
+                    Variable var = std::get<Variable>(this->symbol_table[name]);
 
-                if (visitor.getOutputAsNormal()) {
-                    std::cout << binary_to_int64_t(var.bitset.get_bits(), true) << std::endl;
-                } else {
-                    std::cout << var.bitset.get_bits() << std::endl;
-                }
+                    if (visitor.getOutputAsNormal()) {
+                        std::cout << binary_to_int64_t(var.bitset.get_bits(), true) << std::endl;
+                    } else {
+                        std::cout << var.bitset.get_bits() << std::endl;
+                    }
 
-            } else if (std::holds_alternative<Array>(this->symbol_table[name])) {
+                } else if (std::holds_alternative<Array>(this->symbol_table[name])) {
                 Array arr = std::get<Array>(this->symbol_table[name]);
 
                 std::string constructed_string;
+                constructed_string.reserve(arr.variables.size() * 8); // optimize string stuff
                 // convert all bits to chars to print a string
                 if (visitor.getOutputAsNormal()) {
                     for (const auto &val : arr.variables) {
@@ -139,6 +145,7 @@ void sem_analysis::SemanticAnalyser::analyze() {
                 }
                 std::cout << constructed_string << '\n';
 
+                }
             }
         } else if (which_visitor.visitor_type_name == "StmtArrayNode") {
             ArrayNameManagementVisitor visitor;

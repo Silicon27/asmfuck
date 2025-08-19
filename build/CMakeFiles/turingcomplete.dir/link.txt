@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/turingcomplete.dir/link.d CMakeFiles/turingcomplete.dir/main.cpp.o CMakeFiles/turingcomplete.dir/src/parser.cpp.o CMakeFiles/turingcomplete.dir/src/ast.cpp.o CMakeFiles/turingcomplete.dir/src/error.cpp.o CMakeFiles/turingcomplete.dir/src/semantic_analysis.cpp.o CMakeFiles/turingcomplete.dir/src/tools.cpp.o -o turingcomplete
